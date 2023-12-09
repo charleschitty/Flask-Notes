@@ -4,6 +4,7 @@ import os
 
 from flask import Flask, jsonify, render_template, flash, redirect
 from models import db, User, connect_db
+from forms import RegisterForm, LoginForm, LogoutForm
 
 app = Flask(__name__)
 
@@ -35,14 +36,29 @@ def register():
     /users/<username> (you’ll make this route in the next step)
     """
 
-    #form = our form
-    #care for CSRF
-    #validate_on_submit
-        #check that validation
-        #create a user
-        #redirect to /users/<username>
+    form = RegisterForm()
 
-    #render html to form again
+    if form.validate_on_submit():
+
+        if (User.query.one_or_none(form.username.data)):
+            form.username.errors["Username already taken"]
+        else:
+            new_user = User.register(
+                username=form.username.data,
+                password=form.password.data,
+                email=form.email.data,
+                first_name=form.first_name.data,
+                last_name=form.last_name.data
+            )
+
+            db.session.add(new_user)
+            db.session.commit()
+
+        #TODO: Log them in
+        flash(f"User {new_user.username} created!")
+        return redirect(f"/users/{new_user.username}")
+    else:
+        return render_template("register.html")
 
 @app.route("/login", methods = ["GET", "POST"])
 def login():
