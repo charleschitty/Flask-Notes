@@ -20,6 +20,8 @@ connect_db(app)
 
 debug = DebugToolbarExtension(app)
 
+app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
+
 @app.get("/")
 def index():
     """Redirect to /register"""
@@ -94,13 +96,14 @@ def show_user(username):
     Has a button to log out.
     """
 
-    user = User.query.get_or_404(username)
+    user = User.query.get_or_404(username) #move to after security checks
     form = LogoutForm()
 
+    #Be less helpful
     if "username" not in session:
         flash("You must be logged in to view!")
         return redirect("/")
-    elif session["username"] != user.username:
+    elif session["username"] != user.username: #"username" -> global variable
         flash(f"Only {user.username} can view this page!")
         return redirect("/")
 
@@ -114,5 +117,6 @@ def logout():
 
     if form.validate_on_submit():
         session.pop("username", None)
+    #else raise error?
 
     return redirect('/')
