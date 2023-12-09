@@ -4,8 +4,8 @@ import os
 
 from flask import Flask, render_template, flash, redirect, session
 from flask_debugtoolbar import DebugToolbarExtension
-from models import db, User, connect_db
-from forms import RegisterForm, LoginForm, CSRFValidationForm
+from models import db, User, connect_db, Note
+from forms import RegisterForm, LoginForm, CSRFValidationForm, AddNoteForm, EditNoteForm
 
 app = Flask(__name__)
 
@@ -135,6 +135,19 @@ def delete_user(username):
         flash(f"You cannot view this page")
         return redirect("/")
 
+    user = User.query.get_or_404(username)
+
+    for note in user.notes:
+        db.session.delete(note)
+
+    db.session.delete(user)
+    db.session.commit()
+
+    session.pop(USERNAME, None)
+
+    return redirect("/")
+
+
 @app.route("/users/<username>/notes/add", methods=["GET","POST"])
 def add_note(username):
     """Shows form to add notes that are attached to user once submitted and
@@ -144,13 +157,31 @@ def add_note(username):
         flash(f"You cannot view this page")
         return redirect("/")
 
+    form = AddNoteForm()
+
+    if form.validate_on_submit():
+        new_note = Note(
+            title=form.title.data,
+            content=form.content.data,
+            owner_username=username
+            )
+
+        db.session.add(new_note)
+        db.session.commit()
+
+        return redirect(f"/users/{username}")
+    else:
+        return render_template("add_note.html", form=form)
+
 #patch but no?
 @app.route("/notes/<int:note_id>/add", methods=["GET","POST"])
 def update_note(note_id):
     """Shows form to update a user's notes upon submission and redirects
     to user's page."""
 
-    if USERNAME not in session or session[USERNAME] != username:
+    note = Note.query.get_or_404(note_id)
+
+    if USERNAME not in session or session[USERNAME] != note.owner_username:
         flash(f"You cannot view this page")
         return redirect("/")
 
@@ -159,6 +190,8 @@ def update_note(note_id):
 def delete_note(note_id):
     """Deletes a note and redirects to to user's page."""
 
-    if USERNAME not in session or session[USERNAME] != username:
+    note = Note.query.get_or_404(note_id)
+
+    if USERNAME not in session or session[USERNAME] != note.owner_username:
         flash(f"You cannot view this page")
         return redirect("/")
