@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField
-from wtforms.validators import InputRequired, Length, Email
+from wtforms import StringField, PasswordField, EmailField
+from wtforms.validators import InputRequired, Length
 
 class RegisterForm(FlaskForm):
     """Form for registering an account"""
@@ -15,9 +15,9 @@ class RegisterForm(FlaskForm):
         validators=[InputRequired(), Length(max=30)]
         )
 
-    email = StringField(
+    email = EmailField(
         "Email Address",
-        validators=[InputRequired(), Email(), Length(max=50)]
+        validators=[InputRequired(), Length(max=50)]
     )
 
     first_name = StringField(
@@ -45,4 +45,4 @@ class LoginForm(FlaskForm):
     )
 
 class LogoutForm(FlaskForm):
-    """Form to apply CSRF on logout"""
+    """Form to apply CSRF protection on logout"""

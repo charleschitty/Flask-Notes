@@ -105,7 +105,7 @@ class Note(db.Model):
     )
 
     title = db.Column(
-        db.Sting(100),
+        db.String(100),
         nullable=False
     )
 

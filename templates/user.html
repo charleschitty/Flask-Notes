@@ -7,16 +7,21 @@
 
 {% block content %}
 
-<h1> {{ user.fullname }}</h1>
+<h1> {{ user.full_name }}</h1>
 
 <h3> Email: {{ user.email }} </h3>
-
-{% endblock %}
-
 <h2> Notes </h2>
 <ul>
-  {% for note in user.notes % }
+  <!-- For loop over notes -->
   <li>
 
   </li>
 </ul>
+
+<form action="/logout" method="POST">
+  {{ form.hidden_tag() }}
+  <button type="submit">Log Out</button>
+</form>
+
+{% endblock %}
+

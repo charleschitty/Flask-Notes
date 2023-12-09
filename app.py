@@ -3,6 +3,7 @@
 import os
 
 from flask import Flask, render_template, flash, redirect, session
+from flask_debugtoolbar import DebugToolbarExtension
 from models import db, User, connect_db
 from forms import RegisterForm, LoginForm, LogoutForm
 
@@ -17,6 +18,8 @@ app.config['SQLALCHEMY_ECHO'] = True
 
 connect_db(app)
 
+debug = DebugToolbarExtension(app)
+
 @app.get("/")
 def index():
     """Redirect to /register"""
@@ -26,22 +29,19 @@ def index():
 @app.route("/register", methods = ["GET","POST"])
 def register():
     """
-    Show a form that, when submitted, will register/create a user. This form
-    should accept a username, password, email, first_name, and last_name.
-
-    Make sure you are using WTForms and that your password input hides the
-    characters that the user is typing.
-
-    Process the registration form by adding a new user. Then redirect to
-    /users/<username> (you’ll make this route in the next step)
+    Shows form that accepts username, password, email, and first and last name,
+    and creates a user from that information if the username and email are both
+    available. Redirects to user page if successful, re-renders page otherwise.
     """
 
     form = RegisterForm()
 
     if form.validate_on_submit():
 
-        if (User.query.one_or_none(form.username.data)):
-            form.username.errors["Username already taken"]
+        if (User.query.filter_by(username=form.username.data).one_or_none()):
+            form.username.errors = ["Username already taken"]
+        elif (User.query.filter_by(email=form.email.data).one_or_none()):
+            form.email.errors = ["An account with that email already exists"]
         else:
             new_user = User.register(
                 username=form.username.data,
@@ -56,8 +56,6 @@ def register():
 
             session["username"] = new_user.username
 
-
-            flash(f"User {new_user.username} created!")
             return redirect(f"/users/{new_user.username}")
 
     return render_template("register.html", form=form)
@@ -66,11 +64,9 @@ def register():
 @app.route("/login", methods = ["GET", "POST"])
 def login():
     """
-    Show a form that when submitted will login a user. This form should
-    accept a username and a password.
-
-    Process the login form, ensuring the user is authenticated and going to
-    /users/<username> if so (you’ll make this route in the next step).
+    Shows a form that takes in username and password and logs user in with them,
+    redirecting to their user page if successful and re-rendering the page
+    otherwise.
     """
 
     form = LoginForm()
@@ -83,7 +79,7 @@ def login():
 
         if user:
             session["username"] = user.username
-            return redirect(f"/user/{user.username}")
+            return redirect(f"/users/{user.username}")
 
         else:
             form.username.errors = ["Invalid name/password"]
@@ -94,13 +90,12 @@ def login():
 @app.get("/users/<username>")
 def show_user(username):
     """
-    Display a template the shows information about that user (everything
-    except for their password)
-
-    Make sure that only the logged-in user can see their page.
+    Displays the user's non-password information, if logged in.
+    Has a button to log out.
     """
 
     user = User.query.get_or_404(username)
+    form = LogoutForm()
 
     if "username" not in session:
         flash("You must be logged in to view!")
@@ -109,7 +104,7 @@ def show_user(username):
         flash(f"Only {user.username} can view this page!")
         return redirect("/")
 
-    return render_template("user.html", user=user)
+    return render_template("user.html", user=user, form=form)
 
 @app.post("/logout")
 def logout():

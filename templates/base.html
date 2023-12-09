@@ -7,6 +7,9 @@
 </head>
 <body>
   <h1>Notes</h1>
+  {% for message in get_flashed_messages() %}
+    {{ message }}
+  {% endfor %}
   {% block content %}
 
   {% endblock %}
