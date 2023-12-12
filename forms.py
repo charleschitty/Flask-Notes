@@ -34,5 +34,15 @@ class RegisterForm(FlaskForm):
 class LoginForm(FlaskForm):
     """Form for logging into site"""
 
+    username = StringField(
+        "Username",
+        validators=[InputRequired()]
+    )
+
+    password = PasswordField(
+        "Password",
+        validators=[InputRequired()]
+    )
+
 class LogoutForm(FlaskForm):
     """Form to apply CSRF on logout"""

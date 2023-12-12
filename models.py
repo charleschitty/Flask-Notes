@@ -53,9 +53,6 @@ class User(db.Model):
         nullable=False
     )
 
-    def __repr__(self):
-        return f"<User:{self.username}, {self.email}>"
-
     @classmethod
     def register(cls, username, password, email, first_name, last_name):
         """Register user with hashed password & return user."""
@@ -70,6 +67,31 @@ class User(db.Model):
             first_name=first_name,
             last_name=last_name
             )
+
+    @classmethod
+    def authenticate(cls, username, password):
+        """
+        Validate that user exists & password is correct.
+
+        Return user if valid; else return False.
+        """
+
+        u = cls.query.filter_by(username=username).one_or_none()
+
+        if u and bcrypt.check_password_hash(u.password, password):
+            # return user instance
+            return u
+        else:
+            return False
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+    def __repr__(self):
+        return f"<User:{self.username}, {self.email}>"
+
+
 
 
 class Note(db.Model):

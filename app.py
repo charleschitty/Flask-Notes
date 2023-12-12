@@ -2,7 +2,7 @@
 
 import os
 
-from flask import Flask, jsonify, render_template, flash, redirect
+from flask import Flask, render_template, flash, redirect, session
 from models import db, User, connect_db
 from forms import RegisterForm, LoginForm, LogoutForm
 
@@ -54,11 +54,14 @@ def register():
             db.session.add(new_user)
             db.session.commit()
 
-        #TODO: Log them in
-        flash(f"User {new_user.username} created!")
-        return redirect(f"/users/{new_user.username}")
-    else:
-        return render_template("register.html")
+            session["username"] = new_user.username
+
+
+            flash(f"User {new_user.username} created!")
+            return redirect(f"/users/{new_user.username}")
+
+    return render_template("register.html", form=form)
+
 
 @app.route("/login", methods = ["GET", "POST"])
 def login():
@@ -70,14 +73,23 @@ def login():
     /users/<username> if so (you’ll make this route in the next step).
     """
 
-    #form = our form
-    #care for CSRF
-    #validate_on_submit
-        #check that validation
-        #create a user
-        #redirect to /users/<username>
+    form = LoginForm()
 
-    #render html to form again
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+
+        user = User.authenticate(username, password)
+
+        if user:
+            session["username"] = user.username
+            return redirect(f"/user/{user.username}")
+
+        else:
+            form.username.errors = ["Invalid name/password"]
+
+    return render_template("login.html", form=form)
+
 
 @app.get("/users/<username>")
 def show_user(username):
@@ -90,15 +102,22 @@ def show_user(username):
 
     user = User.query.get_or_404(username)
 
-    #if session[user.id] ...
+    if "username" not in session:
+        flash("You must be logged in to view!")
+        return redirect("/")
+    elif session["username"] != user.username:
+        flash(f"Only {user.username} can view this page!")
+        return redirect("/")
 
-    return render_template(".html", user=user)
+    return render_template("user.html", user=user)
 
 @app.post("/logout")
 def logout():
     """Log the user out and redirect to '/'"""
 
-    #Form checks CSRF form
-    #if validate_on_submit to check if the form is legit (hidden fields)
+    form = LogoutForm()
+
+    if form.validate_on_submit():
+        session.pop("username", None)
 
     return redirect('/')
