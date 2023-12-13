@@ -46,7 +46,8 @@ class LoginForm(FlaskForm):
         validators=[InputRequired()]
     )
 
-##Note Forms
+
+#******************Note Forms**********************#
 
 class AddNoteForm(FlaskForm):
     """Form to create a note"""
