@@ -18,7 +18,7 @@ class User(db.Model):
     User.
 
     Fields:
-    - Username (Primary-Key)
+    - Username (Primary-Key with Foreign-Key relation to notes.owner_username)
     - Password (stores hashed passwords)
     - Email
     - First Name
@@ -31,6 +31,8 @@ class User(db.Model):
         db.String(20),
         primary_key=True
     )
+    #Acts as a primary-key to foreign-key of notes.owner_username
+    #user = db.relationship('User', backref='notes')
 
     password = db.Column(
         db.String(100),
@@ -123,6 +125,7 @@ class Note(db.Model):
         nullable=False
     )
 
+    #redundant string length max
     owner_username = db.Column(
         db.String(20),
         db.ForeignKey('users.username'),

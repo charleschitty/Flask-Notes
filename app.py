@@ -5,7 +5,8 @@ import os
 from flask import Flask, render_template, flash, redirect, session
 from flask_debugtoolbar import DebugToolbarExtension
 from models import db, User, connect_db, Note
-from forms import RegisterForm, LoginForm, CSRFValidationForm, AddNoteForm, EditNoteForm
+from forms import (RegisterForm, LoginForm, CSRFValidationForm, AddNoteForm,
+                    EditNoteForm)
 
 app = Flask(__name__)
 
@@ -22,7 +23,7 @@ debug = DebugToolbarExtension(app)
 
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 
-USERNAME = "username"
+USERNAME_KEY = "username"
 
 @app.get("/")
 def index():
@@ -98,7 +99,7 @@ def logout():
     form = CSRFValidationForm()
 
     if form.validate_on_submit():
-        session.pop(USERNAME, None)
+        session.pop(USERNAME_KEY, None)
     else:
         raise PermissionError("BEGONE")
 
@@ -117,38 +118,47 @@ def show_user(username):
 
     form = CSRFValidationForm()
 
-    if USERNAME not in session or session[USERNAME] != username:
+    #raising error possibilities due to Security Issues
+    if USERNAME_KEY not in session or session[USERNAME_KEY] != username:
         flash(f"You cannot view this page")
         return redirect("/")
 
     user = User.query.get_or_404(username)
 
     return render_template("user.html", user=user, form=form)
+    #look at solution to see how they handle multiple forms - or online)
 
-#not a delete request?? hmm
+#Note: RESTfuls requests are only for building APIs
 @app.post("/users/<username>/delete")
 def delete_user(username):
     """
     Removes user and their notes from database. Logs user out and
-    redirects to /.
+    redirects to /, or otherwise raises a PermissionError.
     """
+    form = CSRFValidationForm()
 
-    if USERNAME not in session or session[USERNAME] != username:
+    if USERNAME_KEY not in session or session[USERNAME_KEY] != username:
         flash(f"You cannot view this page")
         return redirect("/")
 
     user = User.query.get_or_404(username)
 
-    for note in user.notes:
-        db.session.delete(note)
+    if form.validate_on_submit():
+        user = User.query.get_or_404(username)
 
-    db.session.delete(user)
-    db.session.commit()
+        for note in user.notes:
+            db.session.delete(note)
 
-    session.pop(USERNAME, None)
+        db.session.delete(user)
+        db.session.commit()
 
-    return redirect("/")
+        session.pop(USERNAME_KEY, None)
 
+        return redirect("/")
+
+
+    else:
+        raise PermissionError("STOP")
 
 
 #*****************************Notes********************************************#
@@ -159,7 +169,8 @@ def add_note(username):
     """Shows form to add notes that are attached to user once submitted and
     redirects to user's page."""
 
-    if USERNAME not in session or session[USERNAME] != username:
+    #scream/raise error
+    if USERNAME_KEY not in session or session[USERNAME_KEY] != username:
         flash(f"You cannot view this page")
         return redirect("/")
 
@@ -170,7 +181,7 @@ def add_note(username):
             title=form.title.data,
             content=form.content.data,
             owner_username=username
-            )
+        )
 
         db.session.add(new_note)
         db.session.commit()
@@ -179,7 +190,7 @@ def add_note(username):
     else:
         return render_template("add_note.html", form=form)
 
-#patch but no?
+
 @app.route("/notes/<int:note_id>/update", methods=["GET","POST"])
 def update_note(note_id):
     """Shows form to update a user's notes upon submission and redirects
@@ -187,38 +198,36 @@ def update_note(note_id):
 
     note = Note.query.get_or_404(note_id)
 
-    if USERNAME not in session or session[USERNAME] != note.owner_username:
+    if USERNAME_KEY not in session or session[USERNAME_KEY] != note.owner_username:
         flash(f"You cannot view this page")
         return redirect("/")
 
-    form = EditNoteForm()
+    form = EditNoteForm(obj=note)
 
     if form.validate_on_submit():
         note.title = form.title.data
         note.content = form.content.data
 
-        db.session.add(note)
         db.session.commit()
 
         return redirect(f"/users/{note.owner_username}")
 
     else:
-        form.title.data = note.title
-        form.content.data = note.content
         return render_template("edit_note.html", form=form)
 
 
 @app.post("/notes/<int:note_id>/delete")
 def delete_note(note_id):
-    """Deletes a note and redirects to to user's page."""
+    """Deletes a note and redirects to to user's page or otherwise raises
+    a Permission Error"""
 
     note = Note.query.get_or_404(note_id)
 
-    if USERNAME not in session or session[USERNAME] != note.owner_username:
+    username = note.owner_username
+
+    if USERNAME_KEY not in session or session[USERNAME_KEY] != username:
         flash(f"You cannot view this page")
         return redirect("/")
-
-    username = note.owner_username
 
     form = CSRFValidationForm()
 
