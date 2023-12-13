@@ -5,7 +5,7 @@ import os
 from flask import Flask, render_template, flash, redirect, session
 from flask_debugtoolbar import DebugToolbarExtension
 from models import db, User, connect_db
-from forms import RegisterForm, LoginForm, LogoutForm
+from forms import RegisterForm, LoginForm, CSRFValidationForm
 
 app = Flask(__name__)
 
@@ -21,6 +21,8 @@ connect_db(app)
 debug = DebugToolbarExtension(app)
 
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
+
+USERNAME = "username"
 
 @app.get("/")
 def index():
@@ -89,6 +91,20 @@ def login():
     return render_template("login.html", form=form)
 
 
+@app.post("/logout")
+def logout():
+    """Log the user out and redirect to '/'"""
+
+    form = CSRFValidationForm()
+
+    if form.validate_on_submit():
+        session.pop(USERNAME, None)
+    else:
+        raise PermissionError("BEGONE")
+
+    return redirect('/')
+
+
 @app.get("/users/<username>")
 def show_user(username):
     """
@@ -96,27 +112,53 @@ def show_user(username):
     Has a button to log out.
     """
 
-    user = User.query.get_or_404(username) #move to after security checks
-    form = LogoutForm()
+    form = CSRFValidationForm()
 
-    #Be less helpful
-    if "username" not in session:
-        flash("You must be logged in to view!")
-        return redirect("/")
-    elif session["username"] != user.username: #"username" -> global variable
-        flash(f"Only {user.username} can view this page!")
+    if USERNAME not in session or session[USERNAME] != username:
+        flash(f"You cannot view this page")
         return redirect("/")
 
+    user = User.query.get_or_404(username)
+
+    #FIXME: lot of forms
     return render_template("user.html", user=user, form=form)
 
-@app.post("/logout")
-def logout():
-    """Log the user out and redirect to '/'"""
+#not a delete request?? hmm
+@app.post("/users/<username>/delete")
+def delete_user(username):
+    """
+    Removes user and their notes from database. Logs user out and
+    redirects to /.
+    """
 
-    form = LogoutForm()
+    if USERNAME not in session or session[USERNAME] != username:
+        flash(f"You cannot view this page")
+        return redirect("/")
 
-    if form.validate_on_submit():
-        session.pop("username", None)
-    #else raise error?
+@app.route("/users/<username>/notes/add", methods=["GET","POST"])
+def add_note(username):
+    """Shows form to add notes that are attached to user once submitted and
+    redirects to user's page."""
 
-    return redirect('/')
+    if USERNAME not in session or session[USERNAME] != username:
+        flash(f"You cannot view this page")
+        return redirect("/")
+
+#patch but no?
+@app.route("/notes/<int:note_id>/add", methods=["GET","POST"])
+def update_note(note_id):
+    """Shows form to update a user's notes upon submission and redirects
+    to user's page."""
+
+    if USERNAME not in session or session[USERNAME] != username:
+        flash(f"You cannot view this page")
+        return redirect("/")
+
+
+@app.post("/notes/<int:note_id>/delete")
+def delete_note(note_id):
+    """Deletes a note and redirects to to user's page."""
+
+    if USERNAME not in session or session[USERNAME] != username:
+        flash(f"You cannot view this page")
+        return redirect("/")

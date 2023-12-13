@@ -12,11 +12,25 @@
 <h3> Email: {{ user.email }} </h3>
 <h2> Notes </h2>
 <ul>
-  <!-- For loop over notes -->
+  {% for note in user.notes %}
   <li>
-
+    <h4>{{ note.title }}</h4>
+    <div>
+      {{ note.content }}
+    </div>
+    <button> <a href="/notes/{{ note.id }}/update">Edit Note</a></button>
+    <form method="POST" action="/notes/{{ notes.id }}/delete">
+      {{ form.hidden_tag() }}
+      <button type="submit">Delete Note</button>
+    </form>
   </li>
+  {% endfor %}
 </ul>
+<button><a href="/users/{{ user.username }}/notes/add">Add Notes</a></button>
+<form method="POST" action="/users/{{ user.username }}/delete">
+  {{ form.hidden_tag() }}
+  <button type="submit">Delete User</button>
+</form>
 
 <form action="/logout" method="POST">
   {{ form.hidden_tag() }}

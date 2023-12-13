@@ -95,6 +95,15 @@ class User(db.Model):
 
 
 class Note(db.Model):
+    """
+    Note.
+
+    Fields:
+    - id (serialized primary key)
+    - title
+    - content
+    - owner_username (Foreign Key to `users.username`)
+    """
 
     __tablename__ = "notes"
 
@@ -120,10 +129,9 @@ class Note(db.Model):
         nullable=False
     )
 
-    # def __repr__(self):
-    #     return f"<PlaylistSong: pID={self.playlist_id}, sID={self.song_id}>"
+    user = db.relationship('User', backref='notes')
 
-    # songs = db.relationship('Song', secondary='playlists_songs',
-    #                                  backref='playlists')
+    def __repr__(self):
+        return f"<Note: {self.title} by {self.owner_username}>"
 
 
