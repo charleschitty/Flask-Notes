@@ -105,6 +105,9 @@ def logout():
     return redirect('/')
 
 
+#*****************************USERS********************************************#
+
+
 @app.get("/users/<username>")
 def show_user(username):
     """
@@ -120,7 +123,6 @@ def show_user(username):
 
     user = User.query.get_or_404(username)
 
-    #FIXME: lot of forms
     return render_template("user.html", user=user, form=form)
 
 #not a delete request?? hmm
@@ -146,6 +148,10 @@ def delete_user(username):
     session.pop(USERNAME, None)
 
     return redirect("/")
+
+
+
+#*****************************Notes********************************************#
 
 
 @app.route("/users/<username>/notes/add", methods=["GET","POST"])
@@ -174,7 +180,7 @@ def add_note(username):
         return render_template("add_note.html", form=form)
 
 #patch but no?
-@app.route("/notes/<int:note_id>/add", methods=["GET","POST"])
+@app.route("/notes/<int:note_id>/update", methods=["GET","POST"])
 def update_note(note_id):
     """Shows form to update a user's notes upon submission and redirects
     to user's page."""
@@ -184,6 +190,22 @@ def update_note(note_id):
     if USERNAME not in session or session[USERNAME] != note.owner_username:
         flash(f"You cannot view this page")
         return redirect("/")
+
+    form = EditNoteForm()
+
+    if form.validate_on_submit():
+        note.title = form.title.data
+        note.content = form.content.data
+
+        db.session.add(note)
+        db.session.commit()
+
+        return redirect(f"/users/{note.owner_username}")
+
+    else:
+        form.title.data = note.title
+        form.content.data = note.content
+        return render_template("edit_note.html", form=form)
 
 
 @app.post("/notes/<int:note_id>/delete")
@@ -195,3 +217,18 @@ def delete_note(note_id):
     if USERNAME not in session or session[USERNAME] != note.owner_username:
         flash(f"You cannot view this page")
         return redirect("/")
+
+    username = note.owner_username
+
+    form = CSRFValidationForm()
+
+    if form.validate_on_submit():
+        db.session.delete(note)
+        db.session.commit()
+
+        return redirect(f"/users/{username}")
+
+    else:
+        raise PermissionError("STOP")
+
+

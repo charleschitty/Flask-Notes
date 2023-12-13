@@ -19,7 +19,7 @@
       {{ note.content }}
     </div>
     <button> <a href="/notes/{{ note.id }}/update">Edit Note</a></button>
-    <form method="POST" action="/notes/{{ notes.id }}/delete">
+    <form method="POST" action="/notes/{{ note.id }}/delete">
       {{ form.hidden_tag() }}
       <button type="submit">Delete Note</button>
     </form>
